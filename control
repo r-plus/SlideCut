@@ -1,0 +1,9 @@
+Package: jp.r-plus.slidecut
+Name: SlideCut
+Depends: mobilesubstrate, firmware (>= 7.0)
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: Slide shortcut via space key.
+Maintainer: r_plus
+Author: r_plus
+Section: Tweaks
