@@ -44,7 +44,7 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
 %hook UIKeyboardImpl
 - (void)insertText:(NSString *)text
 {
-    static NSString *slideCutKeys = @"xcvazqphe";
+    static NSString * const slideCutKeys = @"xcvazqphe";
     if (!text || text.length != 1 || !isSlideCutting || [text isEqualToString:@" "])
         return %orig;
 
