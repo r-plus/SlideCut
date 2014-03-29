@@ -2,7 +2,7 @@ SlideCut
 ========
 
 Slide shortcut via space key.    
-Alternate portion of `KBShortcut` feature for iOS 7 and arm64 devices.
+Alternate portion of `KBShortcuts` feature for iOS 7 and arm64 devices.
 
 #### Usage
 Tap `Space` key then slide to supported key.
