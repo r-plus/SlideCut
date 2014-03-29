@@ -28,7 +28,7 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
         withGranularity:UITextGranularityWord
         inDirection:direction];
     if (!range) {
-        UITextPosition *p = [delegate positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
+        UITextPosition *p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
         range = [delegate.tokenizer rangeEnclosingPosition:p withGranularity:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
     }
     return range;
