@@ -85,7 +85,7 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
                 if (!textRange)
                     break;
                 delegate.selectedTextRange = textRange;
-                selectedString = [delegate textInRange:delegate.selectedTextRange];
+                selectedString = [delegate textInRange:textRange];
             }
             pb.string = selectedString;
             if (range.location == 0)
