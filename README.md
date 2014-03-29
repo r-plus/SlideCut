@@ -14,6 +14,8 @@ Tap `Space` key then slide to supported key.
 * Z : Undo
 * Q : Start line
 * P : End line
+* H : Home
+* E : End
 
 #### Binary
 [http://cl.ly/UgJa](http://cl.ly/UgJa)

@@ -10,7 +10,7 @@
 @end
 
 static BOOL isSlideCutting = NO;
-static NSString *slideCutKeys = @"xcvazqp";
+static NSString *slideCutKeys = @"xcvazqphe";
 
 // Unfortunately, _UITextKitTextPosition subclass of UITextPosition instance will return instead of UITextPosition since iOS 7.
 // That is too buggy. Not return correct position.
@@ -98,6 +98,14 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
         case 6:
             // P: End line
             delegate.selectedTextRange = LineEdgeTextRange(delegate, UITextLayoutDirectionRight);
+            break;
+        case 7:
+            // H: Home
+            delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.beginningOfDocument toPosition:delegate.beginningOfDocument];
+            break;
+        case 8:
+            // E: End
+            delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.endOfDocument toPosition:delegate.endOfDocument];
             break;
         default:
             %orig;
