@@ -10,7 +10,6 @@
 @end
 
 static BOOL isSlideCutting = NO;
-static NSString *slideCutKeys = @"xcvazqphe";
 
 // Unfortunately, _UITextKitTextPosition subclass of UITextPosition instance will return instead of UITextPosition since iOS 7.
 // That is too buggy. Not return correct position.
@@ -45,6 +44,7 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
 %hook UIKeyboardImpl
 - (void)insertText:(NSString *)text
 {
+    static NSString *slideCutKeys = @"xcvazqphe";
     if (!text || text.length != 1 || !isSlideCutting || [text isEqualToString:@" "])
         return %orig;
 
