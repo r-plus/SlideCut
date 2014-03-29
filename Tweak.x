@@ -22,9 +22,16 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
 
 static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
 {
-    return [delegate.tokenizer rangeEnclosingPosition:delegate.selectedTextRange.start
+    BOOL hasRightText = [delegate.tokenizer isPosition:delegate.selectedTextRange.start withinTextUnit:UITextGranularityWord inDirection:UITextLayoutDirectionRight];
+    UITextStorageDirection direction = hasRightText ? UITextStorageDirectionForward : UITextStorageDirectionBackward;
+    UITextRange *range = [delegate.tokenizer rangeEnclosingPosition:delegate.selectedTextRange.start
         withGranularity:UITextGranularityWord
-        inDirection:(UITextLayoutDirectionLeft | UITextLayoutDirectionRight)];
+        inDirection:direction];
+    if (!range) {
+        UITextPosition *p = [delegate positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
+        range = [delegate.tokenizer rangeEnclosingPosition:p withGranularity:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
+    }
+    return range;
 }
 
 %hook UIKeyboardLayoutStar
@@ -70,21 +77,19 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
 
     switch (range.location) {
         case 0:
-            // X: Cut
-            if (!selectedString.length) {
-                delegate.selectedTextRange = WordSelectedTextRange(delegate);
-                selectedString = [delegate textInRange:delegate.selectedTextRange];
-            }
-            pb.string = selectedString;
-            [self deleteBackward];
-            break;
         case 1:
+            // X: Cut
             // C: Copy
             if (!selectedString.length) {
-                delegate.selectedTextRange = WordSelectedTextRange(delegate);
+                UITextRange *textRange = WordSelectedTextRange(delegate);
+                if (!textRange)
+                    break;
+                delegate.selectedTextRange = textRange;
                 selectedString = [delegate textInRange:delegate.selectedTextRange];
             }
             pb.string = selectedString;
+            if (range.location == 0)
+                [self deleteBackward];
             break;
         case 2:
             // V: Paste
