@@ -20,6 +20,13 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
     return [delegate textRangeFromPosition:lineEdgePosition toPosition:lineEdgePosition];
 }
 
+static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
+{
+    return [delegate.tokenizer rangeEnclosingPosition:delegate.selectedTextRange.start
+        withGranularity:UITextGranularityWord
+        inDirection:(UITextLayoutDirectionLeft | UITextLayoutDirectionRight)];
+}
+
 %hook UIKeyboardLayoutStar
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
@@ -64,15 +71,20 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
     switch (range.location) {
         case 0:
             // X: Cut
-            if (selectedString.length) {
-                pb.string = selectedString;
-                [self deleteBackward];
+            if (!selectedString.length) {
+                delegate.selectedTextRange = WordSelectedTextRange(delegate);
+                selectedString = [delegate textInRange:delegate.selectedTextRange];
             }
+            pb.string = selectedString;
+            [self deleteBackward];
             break;
         case 1:
             // C: Copy
-            if (selectedString.length)
-                pb.string = selectedString;
+            if (!selectedString.length) {
+                delegate.selectedTextRange = WordSelectedTextRange(delegate);
+                selectedString = [delegate textInRange:delegate.selectedTextRange];
+            }
+            pb.string = selectedString;
             break;
         case 2:
             // V: Paste
