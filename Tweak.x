@@ -56,11 +56,9 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
 
     UIPasteboard *pb = [UIPasteboard generalPasteboard];
     UIResponder<UITextInput> *delegate = self.privateInputDelegate ?: self.inputDelegate;
-    UITextRange *selectedTextRange = [delegate selectedTextRange];
-    NSString *selectedString = [delegate textInRange:selectedTextRange];
+    NSString *selectedString = [delegate textInRange:delegate.selectedTextRange];
 
     CMLog(@"delegate = %@", delegate);
-    CMLog(@"selectedTextRange = %@", selectedTextRange);
     CMLog(@"selectedString = %@", selectedString);
 
     switch (range.location) {
