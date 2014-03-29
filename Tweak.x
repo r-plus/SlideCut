@@ -10,7 +10,16 @@
 @end
 
 static BOOL isSlideCutting = NO;
-static NSString *slideCutKeys = @"xcvaz";
+static NSString *slideCutKeys = @"xcvazqp";
+
+// Unfortunately, _UITextKitTextPosition subclass of UITextPosition instance will return instead of UITextPosition since iOS 7.
+// That is too buggy. Not return correct position.
+static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDirection direction)
+{
+    id<UITextInputTokenizer> tokenizer = delegate.tokenizer;
+    UITextPosition *lineEdgePosition = [tokenizer positionFromPosition:delegate.selectedTextRange.end toBoundary:UITextGranularityLine inDirection:direction];
+    return [delegate textRangeFromPosition:lineEdgePosition toPosition:lineEdgePosition];
+}
 
 %hook UIKeyboardLayoutStar
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
@@ -81,6 +90,14 @@ static NSString *slideCutKeys = @"xcvaz";
             // Z: Undo
             if ([delegate.undoManager canUndo])
                 [delegate.undoManager undo];
+            break;
+        case 5:
+            // Q: Start line
+            delegate.selectedTextRange = LineEdgeTextRange(delegate, UITextLayoutDirectionLeft);
+            break;
+        case 6:
+            // P: End line
+            delegate.selectedTextRange = LineEdgeTextRange(delegate, UITextLayoutDirectionRight);
             break;
         default:
             %orig;

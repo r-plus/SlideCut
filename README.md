@@ -12,6 +12,8 @@ Tap `Space` key then slide to supported key.
 * V : Paste
 * A : Select All
 * Z : Undo
+* Q : Start line
+* P : End line
 
 #### Binary
 [http://cl.ly/UgJa](http://cl.ly/UgJa)
