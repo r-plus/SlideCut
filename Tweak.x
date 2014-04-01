@@ -58,7 +58,7 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
 %hook UIKeyboardImpl
 - (void)insertText:(NSString *)text
 {
-    static NSString * const slideCutKeys = @"xcvazqphe";
+    static NSString * const slideCutKeys = @"xcvazqphes";
     if (!text || text.length != 1 || !isSlideCutting || [text isEqualToString:@" "])
         return %orig;
 
@@ -121,6 +121,12 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
         case 8:
             // E: End
             delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.endOfDocument toPosition:delegate.endOfDocument];
+            break;
+        case 9:
+            // S: Select word
+            UITextRange *textRange = WordSelectedTextRange(delegate);
+            if (textRange)
+                delegate.selectedTextRange = textRange;
             break;
         default:
             %orig;

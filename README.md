@@ -16,6 +16,7 @@ Tap `Space` key then slide to supported key.
 * P : End line
 * H : Home
 * E : End
+* S : Select word
 
 #### Binary
 [http://cl.ly/UgJa](http://cl.ly/UgJa)
