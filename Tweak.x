@@ -124,9 +124,12 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
             break;
         case 9:
             // S: Select word
-            UITextRange *textRange = WordSelectedTextRange(delegate);
-            if (textRange)
+            if (!selectedString.length) {
+                UITextRange *textRange = WordSelectedTextRange(delegate);
+                if (!textRange)
+                    break;
                 delegate.selectedTextRange = textRange;
+            }
             break;
         default:
             %orig;
