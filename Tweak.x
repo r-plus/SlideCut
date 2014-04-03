@@ -17,7 +17,24 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
 {
     id<UITextInputTokenizer> tokenizer = delegate.tokenizer;
     UITextPosition *lineEdgePosition = [tokenizer positionFromPosition:delegate.selectedTextRange.end toBoundary:UITextGranularityLine inDirection:direction];
-    return [delegate textRangeFromPosition:lineEdgePosition toPosition:lineEdgePosition];
+    // for until iOS 6 component.
+    if ([lineEdgePosition isMemberOfClass:%c(UITextPositionImpl)])
+        return [delegate textRangeFromPosition:lineEdgePosition toPosition:lineEdgePosition];
+    // for iOS 7 buggy _UITextKitTextPosition workaround.
+    for (int i=1; i<1000; i++) {
+        lineEdgePosition = [delegate positionFromPosition:delegate.selectedTextRange.start inDirection:direction offset:i];
+        NSComparisonResult result = [delegate comparePosition:lineEdgePosition
+            toPosition:(direction == UITextLayoutDirectionLeft) ? delegate.beginningOfDocument : delegate.endOfDocument];
+        if (!lineEdgePosition || result == NSOrderedSame)
+            return [delegate textRangeFromPosition:lineEdgePosition toPosition:lineEdgePosition];
+        UITextRange *range = [delegate textRangeFromPosition:delegate.selectedTextRange.start toPosition:lineEdgePosition];
+        NSString *text = [delegate textInRange:range];
+        if ([text hasPrefix:@"\n"] || [text hasSuffix:@"\n"]) {
+            lineEdgePosition = [delegate positionFromPosition:delegate.selectedTextRange.start inDirection:direction offset:i-1];
+            return [delegate textRangeFromPosition:lineEdgePosition toPosition:lineEdgePosition];
+        }
+    }
+    return nil;
 }
 
 static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
