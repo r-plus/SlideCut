@@ -19,4 +19,4 @@ Tap `Space` key then slide to supported key.
 * S : Select word
 
 #### Binary
-[http://cl.ly/UgJa](http://cl.ly/UgJa)
+[http://cl.ly/UngY](http://cl.ly/UngY)
