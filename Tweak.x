@@ -86,9 +86,9 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
         if (touch == spaceKeyTouch) {
-            NSString *lowercaseText = [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
-            if (!lowercaseText && [kbTree respondsToSelector:@selector(variantDisplayString)])
-                lowercaseText = [[kbTree variantDisplayString] lowercaseString];
+            NSString *lowercaseText = [[kbTree variantDisplayString] lowercaseString];
+            if (!lowercaseText)
+                [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
             NSRange range = [slideCutKeys rangeOfString:lowercaseText options:NSLiteralSearch];
             if (range.location != NSNotFound)
                 isSlideCutting = YES;
