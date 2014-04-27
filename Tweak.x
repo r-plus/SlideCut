@@ -10,7 +10,10 @@
 @end
 
 static BOOL isSlideCutting = NO;
+static UITouch *spaceKeyTouch;
+static NSString * const slideCutKeys = @"xcvazqphes";
 
+// UITextRange Functions {{{
 // Unfortunately, _UITextKitTextPosition subclass of UITextPosition instance will return instead of UITextPosition since iOS 7.
 // That is too buggy. Not return correct position.
 static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDirection direction)
@@ -50,15 +53,21 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
     }
     return range;
 }
+// }}}
 
 %hook UIKeyboardLayoutStar
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
     %orig;
-    UITouch *touch = [touches anyObject];
-    id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
-    if ([kbTree respondsToSelector:@selector(unhashedName)])
-        isSlideCutting = ([[kbTree unhashedName] isEqualToString:@"Space-Key"]) ? YES : NO;
+    isSlideCutting = NO;
+    for (UITouch *touch in [touches allObjects]) {
+        id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
+        if ([kbTree respondsToSelector:@selector(unhashedName)]) {
+            if ([[kbTree unhashedName] isEqualToString:@"Space-Key"]) {
+                spaceKeyTouch = touch;
+            }
+        }
+    }
 
     /*
     // belows return Space-Key
@@ -70,12 +79,26 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
     NSLog(@"%@", [kbTree localizationKey]);
     */
 }
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    %orig;
+    for (UITouch *touch in [touches allObjects]) {
+        id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
+        if (touch == spaceKeyTouch) {
+            NSString *lowercaseText = [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
+            if (!lowercaseText && [kbTree respondsToSelector:@selector(variantDisplayString)])
+                lowercaseText = [[kbTree variantDisplayString] lowercaseString];
+            NSRange range = [slideCutKeys rangeOfString:lowercaseText options:NSLiteralSearch];
+            if (range.location != NSNotFound)
+                isSlideCutting = YES;
+        }
+    }
+}
 %end
 
 %hook UIKeyboardImpl
 - (void)insertText:(NSString *)text
 {
-    static NSString * const slideCutKeys = @"xcvazqphes";
     if (!text || text.length != 1 || !isSlideCutting || [text isEqualToString:@" "])
         return %orig;
 
