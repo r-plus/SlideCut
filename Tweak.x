@@ -1,6 +1,7 @@
 @interface UIKeyboardLayoutStar
 - (id)keyHitTest:(CGPoint)arg1;// UIKBTree
 - (NSString *)unhashedName;
+- (NSString *)variantDisplayString;
 @end
 
 @interface UIKeyboardImpl
