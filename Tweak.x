@@ -64,7 +64,7 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
         if ([kbTree respondsToSelector:@selector(unhashedName)]) {
-            if ([[kbTree unhashedName] isEqualToString:@"Space-Key"]) {
+            if ([[kbTree unhashedName] isEqualToString:@"Space-Key"] && touch.tapCount >= 1) {
                 spaceKeyTouch = touch;
             }
         }
@@ -85,7 +85,7 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
     %orig;
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
-        if (touch == spaceKeyTouch) {
+        if (touch == spaceKeyTouch && touch.tapCount == 0) {
             NSString *lowercaseText = [[kbTree variantDisplayString] lowercaseString];
             if (!lowercaseText)
                 [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
