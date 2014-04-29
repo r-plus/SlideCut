@@ -14,9 +14,13 @@ Tap `Space` key then slide to supported key.
 * Z : Undo
 * Q : Start line
 * P : End line
-* H : Home
-* E : End
+* B : Beginning of Document
+* E : End of Document
 * S : Select word
+* H : Move to Left
+* J : Move to Down
+* K : Move to Up
+* L : Move to Right
 
 #### Binary
 [http://cl.ly/VF57](http://cl.ly/VF57)

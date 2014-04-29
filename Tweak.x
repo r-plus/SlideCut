@@ -12,9 +12,9 @@
 
 static BOOL isSlideCutting = NO;
 static UITouch *spaceKeyTouch;
-static NSString * const slideCutKeys = @"xcvazqphes";
+static NSString * const slideCutKeys = @"xcvazqpbesjkhl";
 
-// UITextRange Functions {{{
+// Helper Functions {{{
 // Unfortunately, _UITextKitTextPosition subclass of UITextPosition instance will return instead of UITextPosition since iOS 7.
 // That is too buggy. Not return correct position.
 static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDirection direction)
@@ -53,6 +53,15 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
         range = [delegate.tokenizer rangeEnclosingPosition:p withGranularity:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
     }
     return range;
+}
+
+static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirection direction)
+{
+    UITextPosition *position = [delegate positionFromPosition:delegate.selectedTextRange.start inDirection:direction offset:1];
+    if (!position)
+        return;
+    UITextRange *range = [delegate textRangeFromPosition:position toPosition:position];
+    delegate.selectedTextRange = range;
 }
 // }}}
 
@@ -156,11 +165,11 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
             delegate.selectedTextRange = LineEdgeTextRange(delegate, UITextLayoutDirectionRight);
             break;
         case 7:
-            // H: Home
+            // B: Beginning of Document
             delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.beginningOfDocument toPosition:delegate.beginningOfDocument];
             break;
         case 8:
-            // E: End
+            // E: End of Document
             delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.endOfDocument toPosition:delegate.endOfDocument];
             break;
         case 9:
@@ -171,6 +180,22 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
                     break;
                 delegate.selectedTextRange = textRange;
             }
+            break;
+        case 10:
+            // J: Caret move to down(Vim style)
+            ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionDown);
+            break;
+        case 11:
+            // K: Caret move to up(Vim style)
+            ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionUp);
+            break;
+        case 12:
+            // H: Caret move to left(Vim style)
+            ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionLeft);
+            break;
+        case 13:
+            // L: Caret move to right(Vim style)
+            ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionRight);
             break;
         default:
             %orig;
