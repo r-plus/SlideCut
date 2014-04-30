@@ -1,3 +1,10 @@
+#import <objc/runtime.h>
+
+// interfaces {{{
+@interface UITouch(SlideCut)
+@property(nonatomic, assign, getter=isStartedFromSpaceKey) BOOL startedFromSpaceKey;
+@end
+
 @interface UIKeyboardLayoutStar
 - (id)keyHitTest:(CGPoint)arg1;// UIKBTree
 - (NSString *)unhashedName;
@@ -7,13 +14,32 @@
 @interface UIKeyboardImpl
 @property(readonly) UIResponder<UITextInput> * privateInputDelegate;
 @property(readonly) UIResponder<UITextInput> * inputDelegate;
++ (id)sharedInstance;
 - (void)deleteBackward;
+- (void)insertText:(NSString *)text;
 @end
+// }}}
 
 static BOOL isSlideCutting = NO;
-static UITouch *spaceKeyTouch;
 static NSString * const slideCutKeys = @"xcvazqpbesjkhl";
 
+@implementation UITouch(SlideCut) // {{{
+static char SlideCutStartedFromSpaceKey;
+- (void)setStartedFromSpaceKey:(BOOL)isStartedFromSpaceKey
+{
+    [self willChangeValueForKey:@"SlideCutStartedFromSpaceKey"];
+    objc_setAssociatedObject(self, &SlideCutStartedFromSpaceKey,
+            [NSNumber numberWithBool:isStartedFromSpaceKey],
+            OBJC_ASSOCIATION_ASSIGN);
+    [self didChangeValueForKey:@"SlideCutStartedFromSpaceKey"];
+}
+
+- (BOOL)isStartedFromSpaceKey
+{
+    return [objc_getAssociatedObject(self, &SlideCutStartedFromSpaceKey) boolValue];
+}
+@end
+// }}}
 // Helper Functions {{{
 // Unfortunately, _UITextKitTextPosition subclass of UITextPosition instance will return instead of UITextPosition since iOS 7.
 // That is too buggy. Not return correct position.
@@ -65,6 +91,7 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
 }
 // }}}
 
+// injection hook {{{
 %hook UIKeyboardLayoutStar
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
@@ -73,8 +100,11 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
         if ([kbTree respondsToSelector:@selector(unhashedName)]) {
-            if ([[kbTree unhashedName] isEqualToString:@"Space-Key"] && touch.tapCount >= 1) {
-                spaceKeyTouch = touch;
+            NSString *unhashedName = [kbTree unhashedName];
+            if (([unhashedName isEqualToString:@"Space-Key"] || [unhashedName isEqualToString:@"Unlabeled-Space-Key"]) && touch.tapCount >= 1) {
+                touch.startedFromSpaceKey = YES;
+            } else {
+                touch.startedFromSpaceKey = NO;
             }
         }
     }
@@ -94,7 +124,7 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
     %orig;
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
-        if (touch == spaceKeyTouch && touch.tapCount == 0) {
+        if (touch.isStartedFromSpaceKey && touch.tapCount == 0) {
             NSString *lowercaseText = [[kbTree variantDisplayString] lowercaseString];
             if (!lowercaseText)
                 [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
@@ -105,8 +135,9 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
     }
 }
 %end
+// }}}
 
-%hook UIKeyboardImpl
+%hook UIKeyboardImpl // feature hook {{{
 - (void)insertText:(NSString *)text
 {
     if (!text || text.length != 1 || !isSlideCutting || [text isEqualToString:@" "])
@@ -203,3 +234,4 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
     }
 }
 %end
+// }}}
