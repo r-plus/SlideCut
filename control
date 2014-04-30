@@ -1,6 +1,6 @@
 Package: jp.r-plus.slidecut
 Name: SlideCut
-Depends: mobilesubstrate, firmware (>= 4.0), cy+model.iphone | cy+model.ipod
+Depends: mobilesubstrate, firmware (>= 7.0), cy+model.iphone | cy+model.ipod
 Version: 0.0.1
 Architecture: iphoneos-arm
 Description: Slide shortcut via space key.
