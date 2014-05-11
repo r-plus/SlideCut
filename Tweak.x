@@ -21,7 +21,7 @@
 // }}}
 
 static BOOL isSlideCutting = NO;
-static NSString * const slideCutKeys = @"xcvazqpbesjkhl";
+static NSString * const slideCutKeys = @"xcvazyqpbesjkhl";
 
 @implementation UITouch(SlideCut) // {{{
 static char SlideCutStartedFromSpaceKey;
@@ -192,22 +192,27 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
                 [delegate.undoManager undo];
             break;
         case 5:
+            // Y: Redo
+            if ([delegate.undoManager canRedo])
+                [delegate.undoManager redo];
+            break;
+        case 6:
             // Q: Start line
             delegate.selectedTextRange = LineEdgeTextRange(delegate, UITextLayoutDirectionLeft);
             break;
-        case 6:
+        case 7:
             // P: End line
             delegate.selectedTextRange = LineEdgeTextRange(delegate, UITextLayoutDirectionRight);
             break;
-        case 7:
+        case 8:
             // B: Beginning of Document
             delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.beginningOfDocument toPosition:delegate.beginningOfDocument];
             break;
-        case 8:
+        case 9:
             // E: End of Document
             delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.endOfDocument toPosition:delegate.endOfDocument];
             break;
-        case 9:
+        case 10:
             // S: Select word
             if (!selectedString.length) {
                 UITextRange *textRange = WordSelectedTextRange(delegate);
@@ -216,19 +221,19 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
                 delegate.selectedTextRange = textRange;
             }
             break;
-        case 10:
+        case 11:
             // J: Caret move to down(Vim style)
             ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionDown);
             break;
-        case 11:
+        case 12:
             // K: Caret move to up(Vim style)
             ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionUp);
             break;
-        case 12:
+        case 13:
             // H: Caret move to left(Vim style)
             ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionLeft);
             break;
-        case 13:
+        case 14:
             // L: Caret move to right(Vim style)
             ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionRight);
             break;
