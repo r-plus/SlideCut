@@ -129,8 +129,10 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
                 [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
             for (NSString *string in [lowercaseText componentsSeparatedByString:@";"]) {
                 NSRange range = [slideCutKeys rangeOfString:string options:NSLiteralSearch];
-                if (range.location != NSNotFound)
+                if (range.location != NSNotFound) {
                     isSlideCutting = YES;
+                    break;
+                }
             }
         }
     }
