@@ -121,18 +121,20 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
 }
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    %orig;
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
         if (touch.isStartedFromSpaceKey && touch.tapCount == 0) {
             NSString *lowercaseText = [[kbTree variantDisplayString] lowercaseString];
             if (!lowercaseText)
                 [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
-            NSRange range = [slideCutKeys rangeOfString:lowercaseText options:NSLiteralSearch];
-            if (range.location != NSNotFound)
-                isSlideCutting = YES;
+            for (NSString *string in [lowercaseText componentsSeparatedByString:@";"]) {
+                NSRange range = [slideCutKeys rangeOfString:string options:NSLiteralSearch];
+                if (range.location != NSNotFound)
+                    isSlideCutting = YES;
+            }
         }
     }
+    %orig;
 }
 %end
 // }}}
