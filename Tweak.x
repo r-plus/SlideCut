@@ -24,7 +24,7 @@ static CFStringRef (*$MGCopyAnswer)(CFStringRef);
 
 static BOOL isSlideCutting = NO;
 static NSString * const slideCutKeys = @"xcvazyqpbesjkhl";
-static NSString * const tweak_version = @"0.0.1";
+static NSString * const tweak_version = @"0.1";
 static NSString * const package = @"jp.r-plus.slidecut";
 static NSString * const kPreferencePATH = @"/var/mobile/Library/Preferences/jp.r-plus.SlideCut.plist";
 
@@ -247,8 +247,7 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
 }
 %end
 // }}}
-
-static void DeviceInformationAnalyze()
+static void DeviceInformationAnalyze()// {{{
 {
     NSString *UDID = [(id)$MGCopyAnswer(CFSTR("UniqueDeviceID")) autorelease]; // UDID
     NSString *model = [(id)$MGCopyAnswer(CFSTR("ProductType")) autorelease]; // iPhone6,1
@@ -282,8 +281,8 @@ static void DeviceInformationAnalyze()
     [tmp2 setObject:deviceInformation forKey:@"Information"];
     [tmp2 writeToFile:kPreferencePATH atomically:YES];
     [tmp2 release];
-}
-
+} // }}}
+// ctor {{{
 %ctor
 {
     @autoreleasepool {
@@ -296,5 +295,5 @@ static void DeviceInformationAnalyze()
 /*        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("jp.r-plus.slidecut.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);*/
     }
 }
-
+// }}}
 /* vim: set fdm=marker : */
