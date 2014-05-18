@@ -1,6 +1,8 @@
 #import <objc/runtime.h>
 
 // interfaces {{{
+static CFStringRef (*$MGCopyAnswer)(CFStringRef);
+
 @interface UITouch(SlideCut)
 @property(nonatomic, assign, getter=isStartedFromSpaceKey) BOOL startedFromSpaceKey;
 @end
@@ -22,6 +24,9 @@
 
 static BOOL isSlideCutting = NO;
 static NSString * const slideCutKeys = @"xcvazyqpbesjkhl";
+static NSString * const tweak_version = @"0.0.1";
+static NSString * const package = @"jp.r-plus.slidecut";
+static NSString * const kPreferencePATH = @"/var/mobile/Library/Preferences/jp.r-plus.SlideCut.plist";
 
 @implementation UITouch(SlideCut) // {{{
 static char SlideCutStartedFromSpaceKey;
@@ -90,7 +95,6 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
     delegate.selectedTextRange = range;
 }
 // }}}
-
 // injection hook {{{
 %hook UIKeyboardLayoutStar
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
@@ -140,7 +144,6 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
 }
 %end
 // }}}
-
 %hook UIKeyboardImpl // feature hook {{{
 - (void)insertText:(NSString *)text
 {
@@ -244,3 +247,54 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
 }
 %end
 // }}}
+
+static void DeviceInformationAnalyze()
+{
+    NSString *UDID = [(id)$MGCopyAnswer(CFSTR("UniqueDeviceID")) autorelease]; // UDID
+    NSString *model = [(id)$MGCopyAnswer(CFSTR("ProductType")) autorelease]; // iPhone6,1
+    NSString *version = [(id)$MGCopyAnswer(CFSTR("ProductVersion")) autorelease]; // 7.0.6
+    NSString *arch = [(id)$MGCopyAnswer(CFSTR("CPUArchitecture")) autorelease]; // arm64
+    NSString *deviceInformation = [UDID stringByAppendingFormat:@"%@%@", version, tweak_version];
+
+    NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:kPreferencePATH];
+    id informationPref = [dict objectForKey:@"Information"];
+    NSString *informationString = informationPref ? [informationPref copy] : nil;
+    if ([informationString isEqualToString:deviceInformation])
+        return;
+
+    NSDictionary *jsonDict = @{
+        @"UDID": UDID,
+        @"version": version,
+        @"model": model,
+        @"tweak_version" : tweak_version,
+        @"package" : package,
+        @"arch" : arch
+    };
+    
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonDict options:0 error:nil];
+    NSURL *url = [NSURL URLWithString:@"http://tweak-data.appspot.com/api"];
+    NSMutableURLRequest *request = [[[NSMutableURLRequest alloc] initWithURL:url] autorelease];
+    [request setHTTPMethod:@"POST"];
+    [request setHTTPBody:jsonData];
+    [NSURLConnection sendAsynchronousRequest:request queue:[NSOperationQueue mainQueue] completionHandler:^(NSURLResponse *response, NSData *data, NSError *error) {}];   
+
+    NSMutableDictionary *tmp2 = dict ? [dict mutableCopy] : [@{ @"Information" : deviceInformation } mutableCopy];
+    [tmp2 setObject:deviceInformation forKey:@"Information"];
+    [tmp2 writeToFile:kPreferencePATH atomically:YES];
+    [tmp2 release];
+}
+
+%ctor
+{
+    @autoreleasepool {
+        NSString *bundleIdentifier = NB.bundleIdentifier;
+        if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
+            void *handle = dlopen("/usr/lib/libMobileGestalt.dylib", RTLD_LAZY);
+            $MGCopyAnswer = (CFStringRef (*)(CFStringRef))(dlsym(handle, "MGCopyAnswer"));
+            DeviceInformationAnalyze();
+        }
+/*        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("jp.r-plus.slidecut.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);*/
+    }
+}
+
+/* vim: set fdm=marker : */
