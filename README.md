@@ -12,6 +12,7 @@ Tap `Space` key then slide to supported key.
 * V : Paste
 * A : Select All
 * Z : Undo
+* Y : Redo
 * Q : Start line
 * P : End line
 * B : Beginning of Document
