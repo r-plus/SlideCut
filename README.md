@@ -23,5 +23,3 @@ Tap `Space` key then slide to supported key.
 * K : Move to Up
 * L : Move to Right
 
-#### Binary
-[http://cl.ly/VF57](http://cl.ly/VF57)
