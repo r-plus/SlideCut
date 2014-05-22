@@ -3,6 +3,15 @@
 // interfaces {{{
 static CFStringRef (*$MGCopyAnswer)(CFStringRef);
 
+@interface UIResponder(SlideCut)
+- (void)scrollSelectionToVisible:(BOOL)scroll;
+@end
+
+@interface UIFieldEditor
++ (id)sharedFieldEditor;
+- (void)revealSelection;
+@end
+
 @interface UITouch(SlideCut)
 @property(nonatomic, assign, getter=isStartedFromSpaceKey) BOOL startedFromSpaceKey;
 @end
@@ -17,6 +26,7 @@ static CFStringRef (*$MGCopyAnswer)(CFStringRef);
 @property(readonly) UIResponder<UITextInput> * privateInputDelegate;
 @property(readonly) UIResponder<UITextInput> * inputDelegate;
 + (id)sharedInstance;
+- (id)delegateAsResponder;
 - (void)deleteBackward;
 - (void)insertText:(NSString *)text;
 @end
@@ -86,6 +96,15 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
     return range;
 }
 
+static void RevealSelection(id<UITextInput> delegate)
+{
+    // reveal for UITextField.
+    [[%c(UIFieldEditor) sharedFieldEditor] revealSelection];
+    // reveal for UITextView, UITextContentView and UIWebDocumentView.
+    if ([delegate respondsToSelector:@selector(scrollSelectionToVisible:)])
+        [(UIResponder *)delegate scrollSelectionToVisible:YES];
+}
+
 static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirection direction)
 {
     UITextPosition *position = [delegate positionFromPosition:delegate.selectedTextRange.start inDirection:direction offset:1];
@@ -93,6 +112,7 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
         return;
     UITextRange *range = [delegate textRangeFromPosition:position toPosition:position];
     delegate.selectedTextRange = range;
+    RevealSelection(delegate);
 }
 // }}}
 // injection hook {{{
@@ -157,7 +177,8 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
         return %orig;
 
     UIPasteboard *pb = [UIPasteboard generalPasteboard];
-    UIResponder<UITextInput> *delegate = self.privateInputDelegate ?: self.inputDelegate;
+    UIResponder<UITextInput> *delegate = [self delegateAsResponder];
+/*    self.privateInputDelegate ?: self.inputDelegate;*/
     NSString *selectedString = [delegate textInRange:delegate.selectedTextRange];
 
     CMLog(@"delegate = %@", delegate);
@@ -188,32 +209,38 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
             // A: Select all
             if ([delegate respondsToSelector:@selector(selectAll:)])
                 [delegate selectAll:nil];
+            else if ([delegate respondsToSelector:@selector(selectAll)])
+                [delegate performSelector:@selector(selectAll)];
             break;
         case 4:
             // Z: Undo
-            if ([delegate.undoManager canUndo])
+            if ([delegate respondsToSelector:@selector(undoManager)] && [delegate.undoManager canUndo])
                 [delegate.undoManager undo];
             break;
         case 5:
             // Y: Redo
-            if ([delegate.undoManager canRedo])
+            if ([delegate respondsToSelector:@selector(undoManager)] && [delegate.undoManager canRedo])
                 [delegate.undoManager redo];
             break;
         case 6:
             // Q: Start line
             delegate.selectedTextRange = LineEdgeTextRange(delegate, UITextLayoutDirectionLeft);
+            RevealSelection(delegate);
             break;
         case 7:
             // P: End line
             delegate.selectedTextRange = LineEdgeTextRange(delegate, UITextLayoutDirectionRight);
+            RevealSelection(delegate);
             break;
         case 8:
             // B: Beginning of Document
             delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.beginningOfDocument toPosition:delegate.beginningOfDocument];
+            RevealSelection(delegate);
             break;
         case 9:
             // E: End of Document
             delegate.selectedTextRange = [delegate textRangeFromPosition:delegate.endOfDocument toPosition:delegate.endOfDocument];
+            RevealSelection(delegate);
             break;
         case 10:
             // S: Select word
