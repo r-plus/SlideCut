@@ -5,6 +5,7 @@ static CFStringRef (*$MGCopyAnswer)(CFStringRef);
 
 @interface UIResponder(SlideCut)
 - (void)scrollSelectionToVisible:(BOOL)scroll;
+- (void)_define:(NSString *)text;
 @end
 
 @interface UIFieldEditor
@@ -33,7 +34,7 @@ static CFStringRef (*$MGCopyAnswer)(CFStringRef);
 // }}}
 
 static BOOL isSlideCutting = NO;
-static NSString * const slideCutKeys = @"xcvazyqpbesjkhl";
+static NSString * const slideCutKeys = @"xcvazyqpbesjkhld";
 static NSString * const tweak_version = @"0.1";
 static NSString * const package = @"jp.r-plus.slidecut";
 static NSString * const kPreferencePATH = @"/var/mobile/Library/Preferences/jp.r-plus.SlideCut.plist";
@@ -214,6 +215,18 @@ static BOOL SlideCutFunction(NSString *text)// {{{
         case 14:
             // L: Caret move to right(Vim style)
             ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionRight);
+            break;
+        case 15:
+            // D: Define
+            if (!selectedString.length) {
+                UITextRange *textRange = WordSelectedTextRange(delegate);
+                if (!textRange)
+                    break;
+                delegate.selectedTextRange = textRange;
+                selectedString = [delegate textInRange:textRange];
+            }
+            if ([delegate respondsToSelector:@selector(_define:)])
+                [delegate _define:selectedString];
             break;
         default:
             return NO;

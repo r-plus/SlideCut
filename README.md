@@ -22,4 +22,5 @@ Tap `Space` key then slide to supported key.
 * J : Move to Down
 * K : Move to Up
 * L : Move to Right
+* D : Define word
 
