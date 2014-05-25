@@ -115,69 +115,17 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
     RevealSelection(delegate);
 }
 // }}}
-// injection hook {{{
-%hook UIKeyboardLayoutStar
-- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+static BOOL SlideCutFunction(NSString *text)// {{{
 {
-    %orig;
-    isSlideCutting = NO;
-    for (UITouch *touch in [touches allObjects]) {
-        id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
-        if ([kbTree respondsToSelector:@selector(unhashedName)]) {
-            NSString *unhashedName = [kbTree unhashedName];
-            if (([unhashedName isEqualToString:@"Space-Key"] || [unhashedName isEqualToString:@"Unlabeled-Space-Key"]) && touch.tapCount >= 1) {
-                touch.startedFromSpaceKey = YES;
-            } else {
-                touch.startedFromSpaceKey = NO;
-            }
-        }
-    }
-
-    /*
-    // belows return Space-Key
-    NSLog(@"%@", [kbTree unhashedName]);
-    NSLog(@"%@", [kbTree layoutName]);
-    NSLog(@"%@", [kbTree componentName]);
-
-    // below return UI-Space
-    NSLog(@"%@", [kbTree localizationKey]);
-    */
-}
-- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
-{
-    for (UITouch *touch in [touches allObjects]) {
-        id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
-        if (touch.isStartedFromSpaceKey && touch.tapCount == 0) {
-            NSString *lowercaseText = [[kbTree variantDisplayString] lowercaseString];
-            if (!lowercaseText)
-                [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
-            for (NSString *string in [lowercaseText componentsSeparatedByString:@";"]) {
-                NSRange range = [slideCutKeys rangeOfString:string options:NSLiteralSearch];
-                if (range.location != NSNotFound) {
-                    isSlideCutting = YES;
-                    break;
-                }
-            }
-        }
-    }
-    %orig;
-}
-%end
-// }}}
-%hook UIKeyboardImpl // feature hook {{{
-- (void)insertText:(NSString *)text
-{
-    if (!text || text.length != 1 || !isSlideCutting || [text isEqualToString:@" "])
-        return %orig;
-
-    isSlideCutting = NO;
+    // return YES if function is fire.
     NSString *lowercaseText = [text lowercaseString];
     NSRange range = [slideCutKeys rangeOfString:lowercaseText options:NSLiteralSearch];
     if (range.location == NSNotFound)
-        return %orig;
+        return NO;
 
+    UIKeyboardImpl *keyboardImpl = [%c(UIKeyboardImpl) sharedInstance];
     UIPasteboard *pb = [UIPasteboard generalPasteboard];
-    UIResponder<UITextInput> *delegate = [self delegateAsResponder];
+    UIResponder<UITextInput> *delegate = [keyboardImpl delegateAsResponder];
 /*    self.privateInputDelegate ?: self.inputDelegate;*/
     NSString *selectedString = [delegate textInRange:delegate.selectedTextRange];
 
@@ -198,12 +146,12 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
             }
             pb.string = selectedString;
             if (range.location == 0)
-                [self deleteBackward];
+                [keyboardImpl deleteBackward];
             break;
         case 2:
             // V: Paste
             if (pb.string.length)
-                %orig(pb.string);
+                [keyboardImpl insertText:pb.string];
             break;
         case 3:
             // A: Select all
@@ -268,10 +216,91 @@ static void ShiftCaretToOneCharacter(id<UITextInput> delegate, UITextLayoutDirec
             ShiftCaretToOneCharacter(delegate, UITextLayoutDirectionRight);
             break;
         default:
-            %orig;
-            break;
+            return NO;
     }
+    return YES;
 }
+// }}}
+// injection hook {{{
+%hook UIKeyboardLayoutStar
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    %orig;
+    isSlideCutting = NO;
+    for (UITouch *touch in [touches allObjects]) {
+        id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
+        if ([kbTree respondsToSelector:@selector(unhashedName)]) {
+            NSString *unhashedName = [kbTree unhashedName];
+            if (([unhashedName isEqualToString:@"Space-Key"] || [unhashedName isEqualToString:@"Unlabeled-Space-Key"]) && touch.tapCount >= 1) {
+                touch.startedFromSpaceKey = YES;
+            } else {
+                touch.startedFromSpaceKey = NO;
+            }
+        }
+    }
+
+    /*
+    // belows return Space-Key
+    NSLog(@"%@", [kbTree unhashedName]);
+    NSLog(@"%@", [kbTree layoutName]);
+    NSLog(@"%@", [kbTree componentName]);
+
+    // below return UI-Space
+    NSLog(@"%@", [kbTree localizationKey]);
+    */
+}
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    NSString *hitedString = nil;
+    for (UITouch *touch in [touches allObjects]) {
+        id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
+        if (touch.isStartedFromSpaceKey && touch.tapCount == 0) {
+            NSString *lowercaseText = [[kbTree variantDisplayString] lowercaseString];
+            NSString *KBrepresentedString = [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
+            for (NSString *string in [[NSString stringWithFormat:@"%@;%@", lowercaseText, KBrepresentedString] componentsSeparatedByString:@";"]) {
+                if (!string)
+                    continue;
+                NSRange range = [slideCutKeys rangeOfString:string options:NSLiteralSearch];
+                if (range.location != NSNotFound) {
+                    hitedString = string;
+                    isSlideCutting = YES;
+                    break;
+                }
+            }
+        }
+    }
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
+        return %orig;
+    if (!isSlideCutting)
+        return %orig;
+    SlideCutFunction(hitedString);
+    %orig;
+}
+%end
+// }}}
+ // feature hook {{{
+%hook UIKeyboardImpl
+%group iPhone
+- (void)insertText:(NSString *)text
+{
+    if (!text || text.length != 1 || !isSlideCutting || [text isEqualToString:@" "])
+        return %orig;
+
+    isSlideCutting = NO;
+    if (!SlideCutFunction(text))
+        %orig;
+}
+%end
+%group iPad
+- (void)insertText:(NSString *)text
+{
+    if ([text isEqualToString:@" "] && isSlideCutting) {
+        isSlideCutting = NO;
+        return;
+    }
+    %orig;
+}
+%end
 %end
 // }}}
 static void DeviceInformationAnalyze()// {{{
@@ -319,6 +348,11 @@ static void DeviceInformationAnalyze()// {{{
             $MGCopyAnswer = (CFStringRef (*)(CFStringRef))(dlsym(handle, "MGCopyAnswer"));
             DeviceInformationAnalyze();
         }
+        %init;
+        if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
+            %init(iPhone);
+        else
+            %init(iPad);
 /*        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("jp.r-plus.slidecut.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);*/
     }
 }
