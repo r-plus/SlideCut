@@ -23,4 +23,5 @@ Tap `Space` key then slide to supported key.
 * K : Move to Up
 * L : Move to Right
 * D : Define word
+* Delete : Delete backward word
 

@@ -34,7 +34,8 @@ static CFStringRef (*$MGCopyAnswer)(CFStringRef);
 // }}}
 
 static BOOL isSlideCutting = NO;
-static NSString * const slideCutKeys = @"xcvazyqpbesjkhld";
+static BOOL isDeleteCutting = NO;
+static NSArray *slideCutKeys;
 static NSString * const tweak_version = @"0.1";
 static NSString * const package = @"jp.r-plus.slidecut";
 static NSString * const kPreferencePATH = @"/var/mobile/Library/Preferences/jp.r-plus.SlideCut.plist";
@@ -92,6 +93,8 @@ static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
         inDirection:direction];
     if (!range) {
         UITextPosition *p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
+        if (!p)
+            p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityLine inDirection:UITextLayoutDirectionUp];
         range = [delegate.tokenizer rangeEnclosingPosition:p withGranularity:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
     }
     return range;
@@ -120,8 +123,8 @@ static BOOL SlideCutFunction(NSString *text)// {{{
 {
     // return YES if function is fire.
     NSString *lowercaseText = [text lowercaseString];
-    NSRange range = [slideCutKeys rangeOfString:lowercaseText options:NSLiteralSearch];
-    if (range.location == NSNotFound)
+    NSUInteger functionIndex = [slideCutKeys indexOfObject:lowercaseText];
+    if (functionIndex == NSNotFound)
         return NO;
 
     UIKeyboardImpl *keyboardImpl = [%c(UIKeyboardImpl) sharedInstance];
@@ -133,7 +136,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
     CMLog(@"delegate = %@", delegate);
     CMLog(@"selectedString = %@", selectedString);
 
-    switch (range.location) {
+    switch (functionIndex) {
         case 0:
         case 1:
             // X: Cut
@@ -146,7 +149,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
                 selectedString = [delegate textInRange:textRange];
             }
             pb.string = selectedString;
-            if (range.location == 0)
+            if (functionIndex == 0)
                 [keyboardImpl deleteBackward];
             break;
         case 2:
@@ -228,6 +231,17 @@ static BOOL SlideCutFunction(NSString *text)// {{{
             if ([delegate respondsToSelector:@selector(_define:)])
                 [delegate _define:selectedString];
             break;
+        case 16:
+            // delete: Delete backward word
+            if (!selectedString.length) {
+                UITextRange *textRange = WordSelectedTextRange(delegate);
+                if (!textRange)
+                    break;
+                delegate.selectedTextRange = textRange;
+            }
+            isDeleteCutting = YES;
+            [keyboardImpl deleteBackward];
+            break;
         default:
             return NO;
     }
@@ -240,6 +254,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
 {
     %orig;
     isSlideCutting = NO;
+    isDeleteCutting = NO;
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
         if ([kbTree respondsToSelector:@selector(unhashedName)]) {
@@ -273,8 +288,8 @@ static BOOL SlideCutFunction(NSString *text)// {{{
             for (NSString *string in [[NSString stringWithFormat:@"%@;%@", lowercaseText, KBrepresentedString] componentsSeparatedByString:@";"]) {
                 if (!string)
                     continue;
-                NSRange range = [slideCutKeys rangeOfString:string options:NSLiteralSearch];
-                if (range.location != NSNotFound) {
+                NSUInteger functionIndex = [slideCutKeys indexOfObject:string];
+                if (functionIndex != NSNotFound) {
                     hitedString = string;
                     isSlideCutting = YES;
                     break;
@@ -282,20 +297,27 @@ static BOOL SlideCutFunction(NSString *text)// {{{
             }
         }
     }
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
+    if ([hitedString isEqualToString:@"delete"]) {
+        SlideCutFunction(hitedString);
         return %orig;
-    if (!isSlideCutting)
+    }
+    if (!isSlideCutting || UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
         return %orig;
     SlideCutFunction(hitedString);
     %orig;
 }
 %end
 // }}}
- // feature hook {{{
+// feature hook {{{
 %hook UIKeyboardImpl
 %group iPhone
 - (void)insertText:(NSString *)text
 {
+    if (text.length == 1 && isSlideCutting && isDeleteCutting) {
+        isSlideCutting = NO;
+        isDeleteCutting = NO;
+        return;
+    }
     if (!text || text.length != 1 || !isSlideCutting || [text isEqualToString:@" "])
         return %orig;
 
@@ -355,6 +377,7 @@ static void DeviceInformationAnalyze()// {{{
 %ctor
 {
     @autoreleasepool {
+        slideCutKeys = [@[@"x", @"c", @"v", @"a", @"z", @"y", @"q", @"p", @"b", @"e", @"s", @"j", @"k", @"h", @"l", @"d", @"delete"] retain];
         NSString *bundleIdentifier = NB.bundleIdentifier;
         if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
             void *handle = dlopen("/usr/lib/libMobileGestalt.dylib", RTLD_LAZY);
