@@ -36,7 +36,7 @@ static CFStringRef (*$MGCopyAnswer)(CFStringRef);
 static BOOL isSlideCutting = NO;
 static BOOL isDeleteCutting = NO;
 static NSArray *slideCutKeys;
-static NSString * const tweak_version = @"0.1";
+static NSString * const tweak_version = @"0.2";
 static NSString * const package = @"jp.r-plus.slidecut";
 static NSString * const kPreferencePATH = @"/var/mobile/Library/Preferences/jp.r-plus.SlideCut.plist";
 
