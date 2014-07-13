@@ -1,8 +1,6 @@
 #import <objc/runtime.h>
 
 // interfaces {{{
-static CFStringRef (*$MGCopyAnswer)(CFStringRef);
-
 @interface UIResponder(SlideCut)
 - (void)scrollSelectionToVisible:(BOOL)scroll;
 - (void)_define:(NSString *)text;
@@ -36,9 +34,6 @@ static CFStringRef (*$MGCopyAnswer)(CFStringRef);
 static BOOL isSlideCutting = NO;
 static BOOL isDeleteCutting = NO;
 static NSArray *slideCutKeys;
-static NSString * const tweak_version = @"0.2";
-static NSString * const package = @"jp.r-plus.slidecut";
-static NSString * const kPreferencePATH = @"/var/mobile/Library/Preferences/jp.r-plus.SlideCut.plist";
 
 @implementation UITouch(SlideCut) // {{{
 static char SlideCutStartedFromSpaceKey;
@@ -282,7 +277,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
     NSString *hitedString = nil;
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
-        if (touch.isStartedFromSpaceKey && touch.tapCount == 0) {
+        if (touch.isStartedFromSpaceKey) {
             NSString *lowercaseText = [[kbTree variantDisplayString] lowercaseString];
             NSString *KBrepresentedString = [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
             for (NSString *string in [[NSString stringWithFormat:@"%@;%@", lowercaseText, KBrepresentedString] componentsSeparatedByString:@";"]) {
@@ -338,52 +333,11 @@ static BOOL SlideCutFunction(NSString *text)// {{{
 %end
 %end
 // }}}
-static void DeviceInformationAnalyze()// {{{
-{
-    NSString *UDID = [(id)$MGCopyAnswer(CFSTR("UniqueDeviceID")) autorelease]; // UDID
-    NSString *model = [(id)$MGCopyAnswer(CFSTR("ProductType")) autorelease]; // iPhone6,1
-    NSString *version = [(id)$MGCopyAnswer(CFSTR("ProductVersion")) autorelease]; // 7.0.6
-    NSString *arch = [(id)$MGCopyAnswer(CFSTR("CPUArchitecture")) autorelease]; // arm64
-    NSString *deviceInformation = [UDID stringByAppendingFormat:@"%@%@", version, tweak_version];
-
-    NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:kPreferencePATH];
-    id informationPref = [dict objectForKey:@"Information"];
-    NSString *informationString = informationPref ? [informationPref copy] : nil;
-    if ([informationString isEqualToString:deviceInformation])
-        return;
-
-    NSDictionary *jsonDict = @{
-        @"UDID": UDID,
-        @"version": version,
-        @"model": model,
-        @"tweak_version" : tweak_version,
-        @"package" : package,
-        @"arch" : arch
-    };
-    
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:jsonDict options:0 error:nil];
-    NSURL *url = [NSURL URLWithString:@"http://tweak-data.appspot.com/api"];
-    NSMutableURLRequest *request = [[[NSMutableURLRequest alloc] initWithURL:url] autorelease];
-    [request setHTTPMethod:@"POST"];
-    [request setHTTPBody:jsonData];
-    [NSURLConnection sendAsynchronousRequest:request queue:[NSOperationQueue mainQueue] completionHandler:^(NSURLResponse *response, NSData *data, NSError *error) {}];   
-
-    NSMutableDictionary *tmp2 = dict ? [dict mutableCopy] : [@{ @"Information" : deviceInformation } mutableCopy];
-    [tmp2 setObject:deviceInformation forKey:@"Information"];
-    [tmp2 writeToFile:kPreferencePATH atomically:YES];
-    [tmp2 release];
-} // }}}
 // ctor {{{
 %ctor
 {
     @autoreleasepool {
         slideCutKeys = [@[@"x", @"c", @"v", @"a", @"z", @"y", @"q", @"p", @"b", @"e", @"s", @"j", @"k", @"h", @"l", @"d", @"delete"] retain];
-        NSString *bundleIdentifier = NB.bundleIdentifier;
-        if ([bundleIdentifier isEqualToString:@"com.apple.springboard"]) {
-            void *handle = dlopen("/usr/lib/libMobileGestalt.dylib", RTLD_LAZY);
-            $MGCopyAnswer = (CFStringRef (*)(CFStringRef))(dlsym(handle, "MGCopyAnswer"));
-            DeviceInformationAnalyze();
-        }
         %init;
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
             %init(iPhone);
