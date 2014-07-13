@@ -12,7 +12,7 @@
 @end
 
 @interface UITouch(SlideCut)
-@property(nonatomic, assign, getter=isStartedFromSpaceKey) BOOL startedFromSpaceKey;
+@property(nonatomic, assign, getter=isStartedFromSpaceKeySC) BOOL startedFromSpaceKeySC;
 @end
 
 @interface UIKeyboardLayoutStar
@@ -37,7 +37,7 @@ static NSArray *slideCutKeys;
 
 @implementation UITouch(SlideCut) // {{{
 static char SlideCutStartedFromSpaceKey;
-- (void)setStartedFromSpaceKey:(BOOL)isStartedFromSpaceKey
+- (void)setStartedFromSpaceKeySC:(BOOL)isStartedFromSpaceKey
 {
     [self willChangeValueForKey:@"SlideCutStartedFromSpaceKey"];
     objc_setAssociatedObject(self, &SlideCutStartedFromSpaceKey,
@@ -46,7 +46,7 @@ static char SlideCutStartedFromSpaceKey;
     [self didChangeValueForKey:@"SlideCutStartedFromSpaceKey"];
 }
 
-- (BOOL)isStartedFromSpaceKey
+- (BOOL)isStartedFromSpaceKeySC
 {
     return [objc_getAssociatedObject(self, &SlideCutStartedFromSpaceKey) boolValue];
 }
@@ -296,9 +296,9 @@ static BOOL SlideCutFunction(NSString *text)// {{{
         if ([kbTree respondsToSelector:@selector(unhashedName)]) {
             NSString *unhashedName = [kbTree unhashedName];
             if (([unhashedName isEqualToString:@"Space-Key"] || [unhashedName isEqualToString:@"Unlabeled-Space-Key"]) && touch.tapCount >= 1) {
-                touch.startedFromSpaceKey = YES;
+                touch.startedFromSpaceKeySC = YES;
             } else {
-                touch.startedFromSpaceKey = NO;
+                touch.startedFromSpaceKeySC = NO;
             }
         }
     }
@@ -318,7 +318,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
     NSString *hitedString = nil;
     for (UITouch *touch in [touches allObjects]) {
         id kbTree = [self keyHitTest:[touch locationInView:touch.view]];
-        if (touch.isStartedFromSpaceKey) {
+        if (touch.isStartedFromSpaceKeySC) {
             NSString *lowercaseText = [[kbTree variantDisplayString] lowercaseString];
             NSString *KBrepresentedString = [[[kbTree properties] objectForKey:@"KBrepresentedString"] lowercaseString];
             for (NSString *string in [[NSString stringWithFormat:@"%@;%@", lowercaseText, KBrepresentedString] componentsSeparatedByString:@";"]) {
