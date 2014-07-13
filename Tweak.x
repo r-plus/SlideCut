@@ -79,20 +79,41 @@ static UITextRange *LineEdgeTextRange(id<UITextInput> delegate, UITextLayoutDire
     return nil;
 }
 
-static UITextRange *WordSelectedTextRange(id<UITextInput> delegate)
+static UITextRange *WordSelectedTextRange(id<UITextInput> delegate, UITextStorageDirection direction)
 {
-    BOOL hasRightText = [delegate.tokenizer isPosition:delegate.selectedTextRange.start withinTextUnit:UITextGranularityWord inDirection:UITextLayoutDirectionRight];
-    UITextStorageDirection direction = hasRightText ? UITextStorageDirectionForward : UITextStorageDirectionBackward;
     UITextRange *range = [delegate.tokenizer rangeEnclosingPosition:delegate.selectedTextRange.start
         withGranularity:UITextGranularityWord
         inDirection:direction];
     if (!range) {
-        UITextPosition *p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
-        if (!p)
-            p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityLine inDirection:UITextLayoutDirectionUp];
-        range = [delegate.tokenizer rangeEnclosingPosition:p withGranularity:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
+        if (direction == UITextStorageDirectionBackward) {
+            UITextPosition *p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
+            if (!p)
+                p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityLine inDirection:UITextLayoutDirectionUp];
+            range = [delegate.tokenizer rangeEnclosingPosition:p withGranularity:UITextGranularityWord inDirection:UITextStorageDirectionBackward];
+        } else {
+            UITextPosition *p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.start toBoundary:UITextGranularityWord inDirection:UITextStorageDirectionForward];
+            if (!p)
+                p = [delegate.tokenizer positionFromPosition:delegate.selectedTextRange.end toBoundary:UITextGranularityLine inDirection:UITextLayoutDirectionDown];
+            range = [delegate.tokenizer rangeEnclosingPosition:p withGranularity:UITextGranularityWord inDirection:UITextStorageDirectionForward];
+        }
     }
     return range;
+}
+
+static UITextRange *AutoDirectionWordSelectedTextRange(id<UITextInput> delegate)
+{
+    BOOL hasRightText = [delegate.tokenizer isPosition:delegate.selectedTextRange.start withinTextUnit:UITextGranularityWord inDirection:UITextLayoutDirectionRight];
+    UITextStorageDirection direction = hasRightText ? UITextStorageDirectionForward : UITextStorageDirectionBackward;
+    return WordSelectedTextRange(delegate, direction);
+}
+
+static UITextRange *WordMovedTextRange(id<UITextInput> delegate, UITextStorageDirection direction)
+{
+    UITextRange *range = WordSelectedTextRange(delegate, direction);
+    if (direction == UITextStorageDirectionForward)
+        return [delegate textRangeFromPosition:range.end toPosition:range.end];
+    else
+        return [delegate textRangeFromPosition:range.start toPosition:range.start];
 }
 
 static void RevealSelection(id<UITextInput> delegate)
@@ -137,7 +158,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
             // X: Cut
             // C: Copy
             if (!selectedString.length) {
-                UITextRange *textRange = WordSelectedTextRange(delegate);
+                UITextRange *textRange = AutoDirectionWordSelectedTextRange(delegate);
                 if (!textRange)
                     break;
                 delegate.selectedTextRange = textRange;
@@ -192,7 +213,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
         case 10:
             // S: Select word
             if (!selectedString.length) {
-                UITextRange *textRange = WordSelectedTextRange(delegate);
+                UITextRange *textRange = AutoDirectionWordSelectedTextRange(delegate);
                 if (!textRange)
                     break;
                 delegate.selectedTextRange = textRange;
@@ -217,7 +238,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
         case 15:
             // D: Define
             if (!selectedString.length) {
-                UITextRange *textRange = WordSelectedTextRange(delegate);
+                UITextRange *textRange = AutoDirectionWordSelectedTextRange(delegate);
                 if (!textRange)
                     break;
                 delegate.selectedTextRange = textRange;
@@ -229,13 +250,33 @@ static BOOL SlideCutFunction(NSString *text)// {{{
         case 16:
             // delete: Delete backward word
             if (!selectedString.length) {
-                UITextRange *textRange = WordSelectedTextRange(delegate);
+                UITextRange *textRange = AutoDirectionWordSelectedTextRange(delegate);
                 if (!textRange)
                     break;
                 delegate.selectedTextRange = textRange;
             }
             isDeleteCutting = YES;
             [keyboardImpl deleteBackward];
+            break;
+        case 17:
+            // N: Previous word position.
+            if (!selectedString.length) {
+                UITextRange *textRange = WordMovedTextRange(delegate, UITextStorageDirectionBackward);
+                if (!textRange)
+                    break;
+                delegate.selectedTextRange = textRange;
+                RevealSelection(delegate);
+            }
+            break;
+        case 18:
+            // M: Next word position.
+            if (!selectedString.length) {
+                UITextRange *textRange = WordMovedTextRange(delegate, UITextStorageDirectionForward);
+                if (!textRange)
+                    break;
+                delegate.selectedTextRange = textRange;
+                RevealSelection(delegate);
+            }
             break;
         default:
             return NO;
@@ -337,7 +378,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
 %ctor
 {
     @autoreleasepool {
-        slideCutKeys = [@[@"x", @"c", @"v", @"a", @"z", @"y", @"q", @"p", @"b", @"e", @"s", @"j", @"k", @"h", @"l", @"d", @"delete"] retain];
+        slideCutKeys = [@[@"x", @"c", @"v", @"a", @"z", @"y", @"q", @"p", @"b", @"e", @"s", @"j", @"k", @"h", @"l", @"d", @"delete", @"n", @"m"] retain];
         %init;
         if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
             %init(iPhone);
