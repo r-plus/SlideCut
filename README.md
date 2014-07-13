@@ -13,15 +13,17 @@ Tap `Space` key then slide to supported key.
 * A : Select All
 * Z : Undo
 * Y : Redo
-* Q : Start line
-* P : End line
-* B : Beginning of Document
-* E : End of Document
+* Q : Move to Start line position
+* P : Move to End line position
+* B : Move to Beginning of Document
+* E : Move to End of Document
 * S : Select word
 * H : Move to Left
 * J : Move to Down
 * K : Move to Up
 * L : Move to Right
 * D : Define word
+* N : Move to previous word position
+* M : Move to next word position
 * Delete : Delete backward word
 
