@@ -250,7 +250,7 @@ static BOOL SlideCutFunction(NSString *text)// {{{
         case 16:
             // delete: Delete backward word
             if (!selectedString.length) {
-                UITextRange *textRange = AutoDirectionWordSelectedTextRange(delegate);
+                UITextRange *textRange = WordSelectedTextRange(delegate, UITextStorageDirectionBackward);
                 if (!textRange)
                     break;
                 delegate.selectedTextRange = textRange;
